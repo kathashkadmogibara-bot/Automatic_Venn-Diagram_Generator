@@ -1,0 +1,777 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    --bg: #f4f7fb;
+    --panel: #ffffff;
+    --text: #172033;
+    --muted: #697386;
+    --border: #dce2ea;
+
+    --primary: #2563eb;
+    --primary-light: #eaf1ff;
+
+    --green: #22c55e;
+    --red: #ef4444;
+
+    --shadow:
+        0 10px 35px rgba(20, 30, 50, 0.08);
+}
+
+body {
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    background: var(--bg);
+    color: var(--text);
+
+    min-height: 100vh;
+
+    overflow-x: hidden;
+}
+
+
+/* ================= HEADER ================= */
+
+.topbar {
+    height: 72px;
+
+    padding: 0 25px;
+
+    background: var(--panel);
+
+    border-bottom:
+        1px solid var(--border);
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    position: sticky;
+
+    top: 0;
+
+    z-index: 100;
+}
+
+.topbar h1 {
+    font-size: 22px;
+
+    letter-spacing: 1px;
+}
+
+.topbar p {
+    font-size: 12px;
+
+    color: var(--muted);
+
+    margin-top: 3px;
+}
+
+.top-btn {
+    width: 42px;
+    height: 42px;
+
+    border: 1px solid var(--border);
+
+    border-radius: 12px;
+
+    background: white;
+
+    font-size: 20px;
+
+    cursor: pointer;
+}
+
+
+/* ================= MAIN ================= */
+
+.app {
+    width: min(1400px, 96%);
+
+    margin: 20px auto;
+
+    display: grid;
+
+    grid-template-columns:
+        360px 1fr;
+
+    gap: 20px;
+}
+
+
+/* ================= CONTROL PANEL ================= */
+
+.control-panel {
+    background: var(--panel);
+
+    border:
+        1px solid var(--border);
+
+    border-radius: 18px;
+
+    padding: 20px;
+
+    box-shadow: var(--shadow);
+
+    height: fit-content;
+}
+
+.input-section label {
+    display: block;
+
+    font-size: 13px;
+
+    font-weight: bold;
+
+    margin-bottom: 8px;
+}
+
+.input-row {
+    display: flex;
+
+    gap: 8px;
+}
+
+#expression {
+    min-width: 0;
+
+    flex: 1;
+
+    height: 46px;
+
+    padding: 0 13px;
+
+    border:
+        1px solid var(--border);
+
+    border-radius: 10px;
+
+    outline: none;
+
+    font-size: 16px;
+
+    color: var(--text);
+
+    background: #fbfcfe;
+}
+
+#expression:focus {
+    border-color: var(--primary);
+
+    box-shadow:
+        0 0 0 3px
+        rgba(37, 99, 235, 0.10);
+}
+
+.generate-btn {
+    height: 46px;
+
+    padding: 0 15px;
+
+    border: none;
+
+    border-radius: 10px;
+
+    background: var(--primary);
+
+    color: white;
+
+    font-weight: bold;
+
+    cursor: pointer;
+
+    transition: 0.2s;
+}
+
+.generate-btn:hover {
+    transform: translateY(-1px);
+}
+
+.generate-btn:active {
+    transform: scale(0.97);
+}
+
+
+/* ================= EXAMPLES ================= */
+
+.examples {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 7px;
+
+    margin-top: 12px;
+}
+
+.examples button {
+    border:
+        1px solid var(--border);
+
+    background: #fafbfe;
+
+    color: var(--text);
+
+    border-radius: 8px;
+
+    padding: 7px 10px;
+
+    cursor: pointer;
+
+    font-size: 13px;
+}
+
+.examples button:hover {
+    background: var(--primary-light);
+
+    border-color: #b9ccff;
+}
+
+
+/* ================= TOOLS ================= */
+
+.tools {
+    display: grid;
+
+    grid-template-columns:
+        1fr 1fr;
+
+    gap: 9px;
+
+    margin-top: 20px;
+}
+
+.tool {
+    height: 44px;
+
+    border:
+        1px solid var(--border);
+
+    border-radius: 10px;
+
+    background: white;
+
+    cursor: pointer;
+
+    color: var(--text);
+
+    font-weight: bold;
+
+    transition: 0.2s;
+}
+
+.tool:hover {
+    background: #f7f9fc;
+}
+
+.tool.active {
+    background: var(--primary-light);
+
+    color: var(--primary);
+
+    border-color: #a9c2ff;
+}
+
+.tool:active {
+    transform: scale(0.97);
+}
+
+
+/* ================= SIZE PANEL ================= */
+
+.size-panel {
+    display: none;
+
+    margin-top: 20px;
+
+    padding-top: 18px;
+
+    border-top:
+        1px solid var(--border);
+}
+
+.size-panel.show {
+    display: block;
+}
+
+.size-panel h3 {
+    font-size: 15px;
+
+    margin-bottom: 14px;
+}
+
+.size-grid {
+    display: grid;
+
+    grid-template-columns:
+        1fr 1fr;
+
+    gap: 10px;
+}
+
+.size-grid > div {
+    position: relative;
+}
+
+.size-grid label {
+    display: block;
+
+    font-size: 12px;
+
+    color: var(--muted);
+
+    margin-bottom: 5px;
+}
+
+.size-grid input {
+    width: 100%;
+
+    height: 40px;
+
+    border:
+        1px solid var(--border);
+
+    border-radius: 9px;
+
+    padding: 0 30px 0 10px;
+
+    outline: none;
+}
+
+.size-grid span {
+    position: absolute;
+
+    right: 9px;
+
+    bottom: 12px;
+
+    color: var(--muted);
+
+    font-size: 11px;
+}
+
+.slider-box {
+    margin-top: 18px;
+}
+
+.slider-box label {
+    display: flex;
+
+    justify-content: space-between;
+
+    font-size: 12px;
+
+    color: var(--muted);
+
+    margin-bottom: 8px;
+}
+
+.slider-box strong {
+    color: var(--text);
+}
+
+#sizeSlider {
+    width: 100%;
+}
+
+.touch-help {
+    font-size: 11px;
+
+    line-height: 1.5;
+
+    color: var(--muted);
+
+    margin-top: 12px;
+}
+
+
+/* ================= WORKSPACE ================= */
+
+.workspace {
+    min-width: 0;
+
+    background: var(--panel);
+
+    border:
+        1px solid var(--border);
+
+    border-radius: 18px;
+
+    box-shadow: var(--shadow);
+
+    overflow: hidden;
+
+    min-height: 620px;
+}
+
+.workspace-top {
+    height: 50px;
+
+    padding: 0 17px;
+
+    border-bottom:
+        1px solid var(--border);
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    font-size: 12px;
+
+    color: var(--muted);
+}
+
+
+/* ================= CANVAS ================= */
+
+.canvas-container {
+    height: 570px;
+
+    width: 100%;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    overflow: hidden;
+
+    position: relative;
+
+    background:
+        radial-gradient(
+            circle at center,
+            #ffffff 0,
+            #f6f8fb 100%
+        );
+
+    touch-action: none;
+
+    user-select: none;
+}
+
+#vennSvg {
+    width: 700px;
+
+    height: 500px;
+
+    flex-shrink: 0;
+
+    transform-origin: center center;
+
+    cursor: grab;
+
+    touch-action: none;
+
+    filter:
+        drop-shadow(
+            0 10px 20px
+            rgba(20, 30, 50, 0.05)
+        );
+}
+
+#vennSvg.dragging {
+    cursor: grabbing;
+}
+
+.svg-background {
+    fill: white;
+
+    stroke: #dce2ea;
+
+    stroke-width: 2;
+}
+
+.set-circle {
+    stroke-width: 4;
+
+    filter: url(#shadow);
+
+    transition:
+        opacity 0.2s,
+        fill 0.2s;
+}
+
+.set-a {
+    fill: rgba(59, 130, 246, 0.35);
+
+    stroke: #2563eb;
+}
+
+.set-b {
+    fill: rgba(239, 68, 68, 0.32);
+
+    stroke: #ef4444;
+}
+
+.set-label {
+    font-size: 30px;
+
+    font-weight: bold;
+
+    fill: #172033;
+
+    pointer-events: none;
+
+    user-select: none;
+}
+
+
+/* ================= CONTEXT MENU ================= */
+
+.context-menu {
+    display: none;
+
+    position: fixed;
+
+    min-width: 190px;
+
+    background: white;
+
+    border:
+        1px solid var(--border);
+
+    border-radius: 12px;
+
+    box-shadow:
+        0 15px 45px
+        rgba(20, 30, 50, 0.18);
+
+    padding: 7px;
+
+    z-index: 1000;
+}
+
+.context-menu.show {
+    display: block;
+}
+
+.context-menu button {
+    display: block;
+
+    width: 100%;
+
+    text-align: left;
+
+    padding: 10px 12px;
+
+    border: none;
+
+    background: transparent;
+
+    border-radius: 8px;
+
+    cursor: pointer;
+
+    font-size: 13px;
+
+    color: var(--text);
+}
+
+.context-menu button:hover {
+    background: #f1f5f9;
+}
+
+.context-menu hr {
+    border: none;
+
+    border-top:
+        1px solid var(--border);
+
+    margin: 5px 0;
+}
+
+
+/* ================= MESSAGE ================= */
+
+.message {
+    position: fixed;
+
+    bottom: 20px;
+
+    left: 50%;
+
+    transform:
+        translate(-50%, 80px);
+
+    background: #172033;
+
+    color: white;
+
+    padding: 10px 16px;
+
+    border-radius: 10px;
+
+    font-size: 13px;
+
+    opacity: 0;
+
+    pointer-events: none;
+
+    transition:
+        0.3s;
+
+    z-index: 2000;
+}
+
+.message.show {
+    opacity: 1;
+
+    transform:
+        translate(-50%, 0);
+}
+
+
+/* ================= DARK MODE ================= */
+
+body.dark {
+    --bg: #0c111b;
+
+    --panel: #121925;
+
+    --text: #edf2f7;
+
+    --muted: #9aa7b8;
+
+    --border: #273244;
+
+    --primary-light: #172c58;
+}
+
+body.dark #expression,
+body.dark .tool,
+body.dark .examples button,
+body.dark .top-btn,
+body.dark .context-menu {
+    background: #17202e;
+
+    color: var(--text);
+}
+
+body.dark .canvas-container {
+    background:
+        radial-gradient(
+            circle at center,
+            #17202e 0,
+            #0f1622 100%
+        );
+}
+
+body.dark .svg-background {
+    fill: #151e2b;
+
+    stroke: #303b4d;
+}
+
+
+/* ================= MOBILE ================= */
+
+@media (max-width: 850px) {
+
+    .topbar {
+        height: 65px;
+
+        padding: 0 15px;
+    }
+
+    .topbar h1 {
+        font-size: 19px;
+    }
+
+    .app {
+        width: 100%;
+
+        margin: 0;
+
+        display: flex;
+
+        flex-direction: column;
+
+        gap: 10px;
+    }
+
+    .control-panel {
+        border-radius: 0 0 18px 18px;
+
+        padding: 15px;
+
+        box-shadow:
+            0 5px 20px
+            rgba(20, 30, 50, 0.07);
+    }
+
+    .workspace {
+        border-radius: 18px 18px 0 0;
+
+        min-height: 520px;
+    }
+
+    .canvas-container {
+        height: 500px;
+    }
+
+    .tools {
+        grid-template-columns:
+            repeat(3, 1fr);
+    }
+
+    .tool {
+        font-size: 12px;
+    }
+
+    .tool:nth-child(5) {
+        grid-column:
+            2 / 3;
+    }
+
+    .size-grid {
+        grid-template-columns:
+            1fr 1fr;
+    }
+}
+
+
+@media (max-width: 480px) {
+
+    .input-row {
+        flex-direction: column;
+    }
+
+    #expression,
+    .generate-btn {
+        width: 100%;
+    }
+
+    .generate-btn {
+        height: 42px;
+    }
+
+    .tools {
+        grid-template-columns:
+            1fr 1fr;
+    }
+
+    .tool:nth-child(5) {
+        grid-column:
+            auto;
+    }
+
+    .workspace-top {
+        height: 45px;
+    }
+
+    .canvas-container {
+        height: 480px;
+    }
+  }
