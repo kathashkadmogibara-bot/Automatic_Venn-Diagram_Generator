@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0,
+                   maximum-scale=1.0, user-scalable=no">
+
+    <title>MOGIBARA Venn Diagram Maker</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<header class="topbar">
+    <div>
+        <h1>MOGIBARA</h1>
+        <p>Venn Diagram Maker</p>
+    </div>
+
+    <button id="themeBtn" class="top-btn">☾</button>
+</header>
+
+
+<main class="app">
+
+    <!-- LEFT / TOP CONTROL PANEL -->
+    <section class="control-panel">
+
+        <div class="input-section">
+            <label for="expression">Set Expression</label>
+
+            <div class="input-row">
+                <input
+                    type="text"
+                    id="expression"
+                    placeholder="Example: A-B"
+                    value="A-B"
+                    autocomplete="off"
+                >
+
+                <button id="generateBtn" class="generate-btn">
+                    Generate
+                </button>
+            </div>
+
+            <div class="examples">
+                <button data-expression="A">A</button>
+                <button data-expression="A'">A'</button>
+                <button data-expression="A-B">A − B</button>
+                <button data-expression="A∩B">A ∩ B</button>
+                <button data-expression="A∪B">A ∪ B</button>
+                <button data-expression="A∩B'">A ∩ B'</button>
+            </div>
+        </div>
+
+
+        <!-- TOOL BUTTONS -->
+        <div class="tools">
+
+            <button id="moveBtn" class="tool active">
+                ✋ Move
+            </button>
+
+            <button id="sizeBtn" class="tool">
+                ⛶ Size
+            </button>
+
+            <button id="zoomInBtn" class="tool">
+                ＋ Zoom
+            </button>
+
+            <button id="zoomOutBtn" class="tool">
+                − Zoom
+            </button>
+
+            <button id="resetBtn" class="tool">
+                ↺ Reset
+            </button>
+
+        </div>
+
+
+        <!-- SIZE PANEL -->
+        <div id="sizePanel" class="size-panel">
+
+            <h3>Diagram Size</h3>
+
+            <div class="size-grid">
+
+                <div>
+                    <label for="widthInput">Width</label>
+                    <input
+                        type="number"
+                        id="widthInput"
+                        value="700"
+                        min="250"
+                        max="1600"
+                    >
+                    <span>px</span>
+                </div>
+
+                <div>
+                    <label for="heightInput">Height</label>
+                    <input
+                        type="number"
+                        id="heightInput"
+                        value="500"
+                        min="250"
+                        max="1200"
+                    >
+                    <span>px</span>
+                </div>
+
+            </div>
+
+
+            <div class="slider-box">
+
+                <label for="sizeSlider">
+                    Overall Size
+                    <strong id="sizeValue">100%</strong>
+                </label>
+
+                <input
+                    type="range"
+                    id="sizeSlider"
+                    min="40"
+                    max="180"
+                    value="100"
+                >
+
+            </div>
+
+            <p class="touch-help">
+                📱 On mobile, use two fingers to pinch
+                and zoom the diagram.
+            </p>
+
+        </div>
+
+    </section>
+
+
+    <!-- CANVAS AREA -->
+    <section class="workspace">
+
+        <div class="workspace-top">
+
+            <span id="modeText">
+                Mode: Move
+            </span>
+
+            <span id="zoomText">
+                Zoom: 100%
+            </span>
+
+        </div>
+
+
+        <div
+            id="canvasContainer"
+            class="canvas-container"
+        >
+
+            <svg
+                id="vennSvg"
+                width="700"
+                height="500"
+                viewBox="0 0 700 500"
+            >
+
+                <defs>
+
+                    <filter
+                        id="shadow"
+                        x="-50%"
+                        y="-50%"
+                        width="200%"
+                        height="200%"
+                    >
+                        <feDropShadow
+                            dx="0"
+                            dy="5"
+                            stdDeviation="6"
+                            flood-opacity="0.18"
+                        />
+                    </filter>
+
+                </defs>
+
+                <rect
+                    id="background"
+                    x="0"
+                    y="0"
+                    width="700"
+                    height="500"
+                    rx="20"
+                    class="svg-background"
+                />
+
+                <g id="diagramGroup">
+
+                    <circle
+                        id="circleA"
+                        cx="280"
+                        cy="250"
+                        r="145"
+                        class="set-circle set-a"
+                    />
+
+                    <circle
+                        id="circleB"
+                        cx="420"
+                        cy="250"
+                        r="145"
+                        class="set-circle set-b"
+                    />
+
+                    <text
+                        id="labelA"
+                        x="190"
+                        y="120"
+                        class="set-label"
+                    >
+                        A
+                    </text>
+
+                    <text
+                        id="labelB"
+                        x="510"
+                        y="120"
+                        class="set-label"
+                    >
+                        B
+                    </text>
+
+                </g>
+
+            </svg>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<!-- CUSTOM CONTEXT MENU -->
+<div id="contextMenu" class="context-menu">
+
+    <button id="menuMove">
+        ✋ Move
+    </button>
+
+    <button id="menuSize">
+        ⛶ Change Size
+    </button>
+
+    <button id="menuZoomIn">
+        ＋ Zoom In
+    </button>
+
+    <button id="menuZoomOut">
+        − Zoom Out
+    </button>
+
+    <hr>
+
+    <button id="menuReset">
+        ↺ Reset Diagram
+    </button>
+
+</div>
+
+
+<div id="message" class="message">
+    Diagram generated
+</div>
+
+
+<script src="script.js"></script>
+
+</body>
+</html>
