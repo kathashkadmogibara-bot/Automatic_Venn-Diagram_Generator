@@ -1,1097 +1,642 @@
-/* =========================================
-   MOGIBARA VENN DIAGRAM MAKER
-   ========================================= */
+const expressionInput = document.getElementById("expression");
+const generateBtn = document.getElementById("generateBtn");
+const stepsBox = document.getElementById("steps");
+const diagramBox = document.getElementById("diagram");
 
 
-/* ================= ELEMENTS ================= */
+// --------------------------------------------------
+// SYMBOL NORMALIZATION
+// --------------------------------------------------
 
-const expressionInput =
-    document.getElementById("expression");
+function normalizeExpression(input) {
 
-const generateBtn =
-    document.getElementById("generateBtn");
-
-const vennSvg =
-    document.getElementById("vennSvg");
-
-const diagramGroup =
-    document.getElementById("diagramGroup");
-
-const circleA =
-    document.getElementById("circleA");
-
-const circleB =
-    document.getElementById("circleB");
-
-const labelA =
-    document.getElementById("labelA");
-
-const labelB =
-    document.getElementById("labelB");
-
-const background =
-    document.getElementById("background");
-
-const canvasContainer =
-    document.getElementById("canvasContainer");
-
-const contextMenu =
-    document.getElementById("contextMenu");
-
-const sizePanel =
-    document.getElementById("sizePanel");
-
-const sizeSlider =
-    document.getElementById("sizeSlider");
-
-const sizeValue =
-    document.getElementById("sizeValue");
-
-const widthInput =
-    document.getElementById("widthInput");
-
-const heightInput =
-    document.getElementById("heightInput");
-
-const modeText =
-    document.getElementById("modeText");
-
-const zoomText =
-    document.getElementById("zoomText");
-
-const message =
-    document.getElementById("message");
-
-const themeBtn =
-    document.getElementById("themeBtn");
-
-
-/* ================= BUTTONS ================= */
-
-const moveBtn =
-    document.getElementById("moveBtn");
-
-const sizeBtn =
-    document.getElementById("sizeBtn");
-
-const zoomInBtn =
-    document.getElementById("zoomInBtn");
-
-const zoomOutBtn =
-    document.getElementById("zoomOutBtn");
-
-const resetBtn =
-    document.getElementById("resetBtn");
-
-const menuMove =
-    document.getElementById("menuMove");
-
-const menuSize =
-    document.getElementById("menuSize");
-
-const menuZoomIn =
-    document.getElementById("menuZoomIn");
-
-const menuZoomOut =
-    document.getElementById("menuZoomOut");
-
-const menuReset =
-    document.getElementById("menuReset");
-
-
-/* ================= STATE ================= */
-
-let currentMode = "move";
-
-let zoom = 1;
-
-let overallSize = 1;
-
-let isDragging = false;
-
-let dragStartX = 0;
-
-let dragStartY = 0;
-
-let groupX = 0;
-
-let groupY = 0;
-
-let lastTouchDistance = null;
-
-let longPressTimer = null;
-
-let startTouchX = 0;
-
-let startTouchY = 0;
-
-
-/* ================= DEFAULT VALUES ================= */
-
-const defaultState = {
-    width: 700,
-    height: 500,
-    zoom: 1,
-    overallSize: 1,
-    groupX: 0,
-    groupY: 0
-};
-
-
-/* ================= MESSAGE ================= */
-
-function showMessage(text) {
-
-    message.textContent = text;
-
-    message.classList.add("show");
-
-    setTimeout(() => {
-
-        message.classList.remove("show");
-
-    }, 1500);
+    return input
+        .replace(/\s+/g, "")
+        .replace(/U/g, "∪")
+        .replace(/u/g, "∪")
+        .replace(/I/g, "∩")
+        .replace(/i/g, "∩")
+        .replace(/'/g, "'")
+        .replace(/−/g, "-")
+        .replace(/×/g, "∩");
 }
 
 
-/* ================= MODE ================= */
+// --------------------------------------------------
+// VALIDATION
+// --------------------------------------------------
 
-function setMode(mode) {
+function validateExpression(exp) {
 
-    currentMode = mode;
-
-    document
-        .querySelectorAll(".tool")
-        .forEach(button => {
-            button.classList.remove("active");
-        });
-
-    if (mode === "move") {
-
-        moveBtn.classList.add("active");
-
-        modeText.textContent =
-            "Mode: Move";
-
-        vennSvg.style.cursor =
-            "grab";
-
+    if (!exp) {
+        throw new Error("Please enter an expression.");
     }
 
-    if (mode === "size") {
-
-        sizeBtn.classList.add("active");
-
-        modeText.textContent =
-            "Mode: Size";
-
-        vennSvg.style.cursor =
-            "nwse-resize";
-
-        sizePanel.classList.add("show");
-
-    } else {
-
-        if (mode !== "move") {
-            sizePanel.classList.remove("show");
-        }
-    }
-}
-
-
-/* ================= SIZE MODE BUTTON ================= */
-
-sizeBtn.addEventListener("click", () => {
-
-    if (sizePanel.classList.contains("show")) {
-
-        sizePanel.classList.remove("show");
-
-        setMode("move");
-
-    } else {
-
-        setMode("size");
-
-        sizePanel.classList.add("show");
-
-    }
-
-});
-
-
-moveBtn.addEventListener("click", () => {
-
-    setMode("move");
-
-    sizePanel.classList.remove("show");
-
-});
-
-
-/* ================= ZOOM ================= */
-
-function updateZoom() {
-
-    vennSvg.style.transform =
-        `scale(${zoom})`;
-
-    zoomText.textContent =
-        `Zoom: ${Math.round(zoom * 100)}%`;
-
-}
-
-
-function zoomIn() {
-
-    zoom += 0.1;
-
-    if (zoom > 3) {
-        zoom = 3;
-    }
-
-    updateZoom();
-
-}
-
-
-function zoomOut() {
-
-    zoom -= 0.1;
-
-    if (zoom < 0.4) {
-        zoom = 0.4;
-    }
-
-    updateZoom();
-
-}
-
-
-zoomInBtn.addEventListener(
-    "click",
-    zoomIn
-);
-
-zoomOutBtn.addEventListener(
-    "click",
-    zoomOut
-);
-
-
-/* ================= SIZE ================= */
-
-function updateSize() {
-
-    const width =
-        Number(widthInput.value);
-
-    const height =
-        Number(heightInput.value);
-
-    vennSvg.setAttribute(
-        "width",
-        width
-    );
-
-    vennSvg.setAttribute(
-        "height",
-        height
-    );
-
-    background.setAttribute(
-        "width",
-        width
-    );
-
-    background.setAttribute(
-        "height",
-        height
-    );
-
-    vennSvg.setAttribute(
-        "viewBox",
-        `0 0 ${width} ${height}`
-    );
-
-    sizeValue.textContent =
-        `${Math.round(overallSize * 100)}%`;
-
-    applyOverallSize();
-
-}
-
-
-function applyOverallSize() {
-
-    diagramGroup.style.transform =
-        `translate(${groupX}px, ${groupY}px)
-         scale(${overallSize})`;
-
-}
-
-
-widthInput.addEventListener(
-    "input",
-    updateSize
-);
-
-
-heightInput.addEventListener(
-    "input",
-    updateSize
-);
-
-
-sizeSlider.addEventListener(
-    "input",
-    () => {
-
-        overallSize =
-            Number(sizeSlider.value) / 100;
-
-        updateSize();
-
-    }
-);
-
-
-/* ================= MOVE ================= */
-
-function startDrag(x, y) {
-
-    if (currentMode !== "move") {
-        return;
-    }
-
-    isDragging = true;
-
-    dragStartX = x - groupX;
-
-    dragStartY = y - groupY;
-
-    vennSvg.classList.add("dragging");
-
-}
-
-
-function moveDrag(x, y) {
-
-    if (!isDragging) {
-        return;
-    }
-
-    groupX =
-        x - dragStartX;
-
-    groupY =
-        y - dragStartY;
-
-    applyOverallSize();
-
-}
-
-
-function stopDrag() {
-
-    isDragging = false;
-
-    vennSvg.classList.remove("dragging");
-
-}
-
-
-/* ================= MOUSE EVENTS ================= */
-
-vennSvg.addEventListener(
-    "mousedown",
-    event => {
-
-        if (event.button !== 0) {
-            return;
-        }
-
-        startDrag(
-            event.clientX,
-            event.clientY
+    const allowed = /^[A-Za-z0-9()∪∩\-']+$/;
+
+    if (!allowed.test(exp)) {
+        throw new Error(
+            "Expression contains an unsupported symbol."
         );
-
     }
-);
 
+    let balance = 0;
 
-window.addEventListener(
-    "mousemove",
-    event => {
+    for (const char of exp) {
 
-        moveDrag(
-            event.clientX,
-            event.clientY
-        );
+        if (char === "(") balance++;
 
+        if (char === ")") balance--;
+
+        if (balance < 0) {
+            throw new Error("Brackets are not balanced.");
+        }
     }
-);
 
-
-window.addEventListener(
-    "mouseup",
-    stopDrag
-);
-
-
-/* ================= TOUCH HELPERS ================= */
-
-function distanceBetweenTouches(touches) {
-
-    const x =
-        touches[0].clientX -
-        touches[1].clientX;
-
-    const y =
-        touches[0].clientY -
-        touches[1].clientY;
-
-    return Math.sqrt(
-        x * x + y * y
-    );
-
+    if (balance !== 0) {
+        throw new Error("Brackets are not balanced.");
+    }
 }
 
 
-/* ================= TOUCH EVENTS ================= */
+// --------------------------------------------------
+// TOKENIZER
+// --------------------------------------------------
 
-vennSvg.addEventListener(
-    "touchstart",
-    event => {
+function tokenize(exp) {
 
-        event.preventDefault();
+    const tokens = [];
 
-        if (event.touches.length === 2) {
+    for (let i = 0; i < exp.length; i++) {
 
-            lastTouchDistance =
-                distanceBetweenTouches(
-                    event.touches
-                );
+        const char = exp[i];
 
-            return;
-        }
+        if (/[A-Za-z0-9]/.test(char)) {
 
-        if (event.touches.length === 1) {
+            let name = char;
 
-            const touch =
-                event.touches[0];
-
-            startTouchX =
-                touch.clientX;
-
-            startTouchY =
-                touch.clientY;
-
-            if (currentMode === "move") {
-
-                startDrag(
-                    touch.clientX,
-                    touch.clientY
-                );
-
+            while (
+                i + 1 < exp.length &&
+                /[A-Za-z0-9]/.test(exp[i + 1])
+            ) {
+                name += exp[++i];
             }
 
-            longPressTimer =
-                setTimeout(() => {
-
-                    openContextMenu(
-                        touch.clientX,
-                        touch.clientY
-                    );
-
-                }, 650);
+            tokens.push({
+                type: "set",
+                value: name
+            });
 
         }
 
-    },
-    {
-        passive: false
+        else if ("∪∩-()'".includes(char)) {
+
+            tokens.push({
+                type: char,
+                value: char
+            });
+
+        }
+
+        else {
+
+            throw new Error(
+                "Unknown character: " + char
+            );
+
+        }
     }
-);
+
+    return tokens;
+}
 
 
-vennSvg.addEventListener(
-    "touchmove",
-    event => {
+// --------------------------------------------------
+// PARSER
+// --------------------------------------------------
 
-        event.preventDefault();
+class Parser {
 
-        clearTimeout(
-            longPressTimer
-        );
+    constructor(tokens) {
 
-        if (event.touches.length === 2) {
+        this.tokens = tokens;
+        this.position = 0;
 
-            const newDistance =
-                distanceBetweenTouches(
-                    event.touches
-                );
+    }
 
-            if (lastTouchDistance !== null) {
 
-                const difference =
-                    newDistance -
-                    lastTouchDistance;
+    current() {
 
-                zoom += difference * 0.005;
+        return this.tokens[this.position];
 
-                if (zoom < 0.4) {
-                    zoom = 0.4;
-                }
+    }
 
-                if (zoom > 3) {
-                    zoom = 3;
-                }
 
-                updateZoom();
+    eat(type) {
 
-            }
+        const token = this.current();
 
-            lastTouchDistance =
-                newDistance;
+        if (!token || token.type !== type) {
 
-            return;
-        }
-
-        if (
-            event.touches.length === 1 &&
-            currentMode === "move"
-        ) {
-
-            const touch =
-                event.touches[0];
-
-            moveDrag(
-                touch.clientX,
-                touch.clientY
+            throw new Error(
+                `Expected "${type}".`
             );
 
         }
 
-    },
-    {
-        passive: false
-    }
-);
+        this.position++;
 
-
-vennSvg.addEventListener(
-    "touchend",
-    event => {
-
-        clearTimeout(
-            longPressTimer
-        );
-
-        lastTouchDistance = null;
-
-        stopDrag();
-
-    }
-);
-
-
-/* ================= RIGHT CLICK ================= */
-
-vennSvg.addEventListener(
-    "contextmenu",
-    event => {
-
-        event.preventDefault();
-
-        openContextMenu(
-            event.clientX,
-            event.clientY
-        );
-
-    }
-);
-
-
-function openContextMenu(x, y) {
-
-    contextMenu.classList.add("show");
-
-    const menuWidth =
-        contextMenu.offsetWidth;
-
-    const menuHeight =
-        contextMenu.offsetHeight;
-
-    let left = x;
-
-    let top = y;
-
-    if (
-        left + menuWidth >
-        window.innerWidth
-    ) {
-
-        left =
-            window.innerWidth -
-            menuWidth -
-            10;
-
+        return token;
     }
 
-    if (
-        top + menuHeight >
-        window.innerHeight
-    ) {
 
-        top =
-            window.innerHeight -
-            menuHeight -
-            10;
+    parse() {
 
+        const node = this.parseUnion();
+
+        if (this.position < this.tokens.length) {
+
+            throw new Error(
+                "Unexpected symbol near the end."
+            );
+
+        }
+
+        return node;
     }
 
-    contextMenu.style.left =
-        `${left}px`;
 
-    contextMenu.style.top =
-        `${top}px`;
+    // UNION
+    parseUnion() {
 
+        let node = this.parseIntersection();
+
+        while (this.current()?.type === "∪") {
+
+            this.eat("∪");
+
+            node = {
+                type: "union",
+                left: node,
+                right: this.parseIntersection()
+            };
+
+        }
+
+        return node;
+    }
+
+
+    // INTERSECTION
+    parseIntersection() {
+
+        let node = this.parseDifference();
+
+        while (this.current()?.type === "∩") {
+
+            this.eat("∩");
+
+            node = {
+                type: "intersection",
+                left: node,
+                right: this.parseDifference()
+            };
+
+        }
+
+        return node;
+    }
+
+
+    // DIFFERENCE
+    parseDifference() {
+
+        let node = this.parseUnary();
+
+        while (this.current()?.type === "-") {
+
+            this.eat("-");
+
+            node = {
+                type: "difference",
+                left: node,
+                right: this.parseUnary()
+            };
+
+        }
+
+        return node;
+    }
+
+
+    // COMPLEMENT
+    parseUnary() {
+
+        let node;
+
+        if (this.current()?.type === "(") {
+
+            this.eat("(");
+
+            node = this.parseUnion();
+
+            this.eat(")");
+
+        }
+
+        else if (this.current()?.type === "set") {
+
+            node = {
+                type: "set",
+                name: this.eat("set").value
+            };
+
+        }
+
+        else {
+
+            throw new Error(
+                "Expected a set or opening bracket."
+            );
+
+        }
+
+
+        while (this.current()?.type === "'") {
+
+            this.eat("'");
+
+            node = {
+                type: "complement",
+                value: node
+            };
+
+        }
+
+        return node;
+    }
 }
 
 
-function closeContextMenu() {
+// --------------------------------------------------
+// TREE → TEXT
+// --------------------------------------------------
 
-    contextMenu.classList.remove(
-        "show"
-    );
+function nodeToString(node) {
 
+    switch (node.type) {
+
+        case "set":
+            return node.name;
+
+        case "complement":
+            return nodeToString(node.value) + "'";
+
+        case "difference":
+            return (
+                "(" +
+                nodeToString(node.left) +
+                "-" +
+                nodeToString(node.right) +
+                ")"
+            );
+
+        case "intersection":
+            return (
+                "(" +
+                nodeToString(node.left) +
+                "∩" +
+                nodeToString(node.right) +
+                ")"
+            );
+
+        case "union":
+            return (
+                "(" +
+                nodeToString(node.left) +
+                "∪" +
+                nodeToString(node.right) +
+                ")"
+            );
+
+        default:
+            return "";
+    }
 }
 
 
-document.addEventListener(
-    "click",
-    event => {
+// --------------------------------------------------
+// STEP GENERATOR
+// --------------------------------------------------
 
-        if (
-            !contextMenu.contains(event.target)
-        ) {
+function generateSteps(node, steps = []) {
 
-            closeContextMenu();
+    if (node.type === "set") {
+
+        return node;
+    }
+
+
+    if (node.type === "complement") {
+
+        const child = generateSteps(
+            node.value,
+            steps
+        );
+
+        steps.push({
+            expression: nodeToString(node),
+            explanation:
+                `${nodeToString(node.value)}' means the complement of ${nodeToString(node.value)} — everything outside ${nodeToString(node.value)}.`
+        });
+
+        return node;
+    }
+
+
+    if (node.type === "difference") {
+
+        generateSteps(node.left, steps);
+
+        generateSteps(node.right, steps);
+
+        steps.push({
+            expression: nodeToString(node),
+            explanation:
+                `${nodeToString(node.left)} - ${nodeToString(node.right)} means the elements that are in ${nodeToString(node.left)} but not in ${nodeToString(node.right)}.`
+        });
+
+        return node;
+    }
+
+
+    if (node.type === "intersection") {
+
+        generateSteps(node.left, steps);
+
+        generateSteps(node.right, steps);
+
+        steps.push({
+            expression: nodeToString(node),
+            explanation:
+                `${nodeToString(node.left)} ∩ ${nodeToString(node.right)} means the common region of both sets.`
+        });
+
+        return node;
+    }
+
+
+    if (node.type === "union") {
+
+        generateSteps(node.left, steps);
+
+        generateSteps(node.right, steps);
+
+        steps.push({
+            expression: nodeToString(node),
+            explanation:
+                `${nodeToString(node.left)} ∪ ${nodeToString(node.right)} means everything belonging to either set.`
+        });
+
+        return node;
+    }
+
+
+    return node;
+}
+
+
+// --------------------------------------------------
+// REMOVE DUPLICATE STEPS
+// --------------------------------------------------
+
+function removeDuplicateSteps(steps) {
+
+    const result = [];
+    const seen = new Set();
+
+    for (const step of steps) {
+
+        if (!seen.has(step.expression)) {
+
+            seen.add(step.expression);
+
+            result.push(step);
 
         }
 
     }
-);
 
-
-/* ================= CONTEXT BUTTONS ================= */
-
-menuMove.addEventListener(
-    "click",
-    () => {
-
-        setMode("move");
-
-        closeContextMenu();
-
-    }
-);
-
-
-menuSize.addEventListener(
-    "click",
-    () => {
-
-        setMode("size");
-
-        sizePanel.classList.add(
-            "show"
-        );
-
-        closeContextMenu();
-
-    }
-);
-
-
-menuZoomIn.addEventListener(
-    "click",
-    () => {
-
-        zoomIn();
-
-        closeContextMenu();
-
-    }
-);
-
-
-menuZoomOut.addEventListener(
-    "click",
-    () => {
-
-        zoomOut();
-
-        closeContextMenu();
-
-    }
-);
-
-
-menuReset.addEventListener(
-    "click",
-    () => {
-
-        resetDiagram();
-
-        closeContextMenu();
-
-    }
-);
-
-
-/* ================= RESET ================= */
-
-function resetDiagram() {
-
-    widthInput.value =
-        defaultState.width;
-
-    heightInput.value =
-        defaultState.height;
-
-    zoom =
-        defaultState.zoom;
-
-    overallSize =
-        defaultState.overallSize;
-
-    groupX =
-        defaultState.groupX;
-
-    groupY =
-        defaultState.groupY;
-
-    sizeSlider.value = 100;
-
-    updateSize();
-
-    updateZoom();
-
-    setMode("move");
-
-    showMessage(
-        "Diagram reset"
-    );
-
+    return result;
 }
 
 
-resetBtn.addEventListener(
-    "click",
-    resetDiagram
-);
+// --------------------------------------------------
+// DISPLAY STEPS
+// --------------------------------------------------
+
+function displaySteps(steps, finalExpression) {
+
+    stepsBox.innerHTML = "";
+
+    steps.forEach((step, index) => {
+
+        const div = document.createElement("div");
+
+        div.className = "step";
+
+        div.innerHTML = `
+            <div class="step-number">
+                ${index + 1}
+            </div>
+
+            <div class="step-content">
+
+                <div class="step-expression">
+                    ${escapeHTML(step.expression)}
+                </div>
+
+                <div class="step-explanation">
+                    ${escapeHTML(step.explanation)}
+                </div>
+
+            </div>
+        `;
+
+        stepsBox.appendChild(div);
+
+    });
 
 
-/* ================= EXPRESSION ================= */
+    const final = document.createElement("div");
 
-function normalizeExpression(expression) {
+    final.className = "step";
 
-    return expression
-        .replace(/\s+/g, "")
-        .replace(/∩/g, "&")
-        .replace(/∪/g, "|")
-        .replace(/-/g, "-")
-        .replace(/'/g, "'")
-        .toUpperCase();
+    final.innerHTML = `
+        <div class="step-number">✓</div>
 
+        <div class="step-content">
+
+            <div class="step-expression">
+                Final: ${escapeHTML(finalExpression)}
+            </div>
+
+            <div class="step-explanation">
+                This is the final Venn-diagram region described by the expression.
+            </div>
+
+        </div>
+    `;
+
+    stepsBox.appendChild(final);
 }
 
 
-/*
-    This function decides which parts
-    of the Venn diagram should be shown.
+// --------------------------------------------------
+// SIMPLE VENN DIAGRAM
+// --------------------------------------------------
 
-    Supported examples:
+function drawDiagram(expression) {
 
-    A
-    B
-    A'
-    B'
-    A-B
-    B-A
-    A&B
-    A|B
-    A&B'
-    A'&B
-    A'&B'
-    A|B
-*/
+    const sets = [
+        ...new Set(
+            expression.match(/[A-Za-z]/g) || []
+        )
+    ].slice(0, 3);
 
 
-function generateDiagram() {
+    diagramBox.innerHTML = "";
 
-    const raw =
-        expressionInput.value;
 
-    const expression =
-        normalizeExpression(raw);
+    if (sets.length === 0) {
 
-    if (!expression) {
-
-        showMessage(
-            "Enter a set expression"
-        );
+        diagramBox.innerHTML =
+            "<p class='empty'>No sets detected.</p>";
 
         return;
     }
 
 
-    /* Default visibility */
+    const venn = document.createElement("div");
 
-    circleA.style.opacity = "1";
+    venn.className = "venn";
 
-    circleB.style.opacity = "1";
 
-    circleA.style.fill =
-        "rgba(59, 130, 246, 0.35)";
+    sets.forEach((set, index) => {
 
-    circleB.style.fill =
-        "rgba(239, 68, 68, 0.32)";
+        const circle = document.createElement("div");
 
+        circle.className =
+            "circle circle-" +
+            String.fromCharCode(97 + index);
 
-    /*
-        A
-    */
+        circle.innerHTML =
+            `<span class="set-label">${set}</span>`;
 
-    if (expression === "A") {
+        venn.appendChild(circle);
 
-        circleA.style.fill =
-            "rgba(59, 130, 246, 0.60)";
+    });
 
-        circleB.style.fill =
-            "rgba(239, 68, 68, 0.10)";
 
-    }
-
-
-    /*
-        B
-    */
-
-    else if (expression === "B") {
-
-        circleA.style.fill =
-            "rgba(59, 130, 246, 0.10)";
-
-        circleB.style.fill =
-            "rgba(239, 68, 68, 0.60)";
-
-    }
-
-
-    /*
-        A'
-    */
-
-    else if (expression === "A'") {
-
-        circleA.style.fill =
-            "rgba(59, 130, 246, 0.08)";
-
-        circleB.style.fill =
-            "rgba(239, 68, 68, 0.08)";
-
-        background.style.fill =
-            "rgba(34, 197, 94, 0.28)";
-
-    }
-
-
-    /*
-        B'
-    */
-
-    else if (expression === "B'") {
-
-        circleA.style.fill =
-            "rgba(59, 130, 246, 0.08)";
-
-        circleB.style.fill =
-            "rgba(239, 68, 68, 0.08)";
-
-        background.style.fill =
-            "rgba(34, 197, 94, 0.28)";
-
-    }
-
-
-    /*
-        A-B
-    */
-
-    else if (
-        expression === "A-B" ||
-        expression === "A\\B"
-    ) {
-
-        circleA.style.fill =
-            "rgba(59, 130, 246, 0.65)";
-
-        circleB.style.fill =
-            "rgba(239, 68, 68, 0.10)";
-
-    }
-
-
-    /*
-        B-A
-    */
-
-    else if (
-        expression === "B-A" ||
-        expression === "B\\A"
-    ) {
-
-        circleA.style.fill =
-            "rgba(59, 130, 246, 0.10)";
-
-        circleB.style.fill =
-            "rgba(239, 68, 68, 0.65)";
-
-    }
-
-
-    /*
-        A ∩ B
-    */
-
-    else if (
-        expression === "A&B" ||
-        expression === "A∩B"
-    ) {
-
-        circleA.style.fill =
-            "rgba(59, 130, 246, 0.30)";
-
-        circleB.style.fill =
-            "rgba(239, 68, 68, 0.30)";
-
-        showMessage(
-            "Intersection A ∩ B"
-        );
-
-        return;
-    }
-
-
-    /*
-        A ∪ B
-    */
-
-    else if (
-        expression === "A|B"
-    ) {
-
-        circleA.style.fill =
-            "rgba(59, 130, 246, 0.45)";
-
-        circleB.style.fill =
-            "rgba(239, 68, 68, 0.45)";
-
-    }
-
-
-    /*
-        A ∩ B'
-    */
-
-    else if (
-        expression === "A&B'"
-    ) {
-
-        circleA.style.fill =
-            "rgba(59, 130, 246, 0.65)";
-
-        circleB.style.fill =
-            "rgba(239, 68, 68, 0.08)";
-
-    }
-
-
-    /*
-        A' ∩ B
-    */
-
-    else if (
-        expression === "A'&B"
-    ) {
-
-        circleA.style.fill =
-            "rgba(59, 130, 246, 0.08)";
-
-        circleB.style.fill =
-            "rgba(239, 68, 68, 0.65)";
-
-    }
-
-
-    /*
-        A' ∩ B'
-    */
-
-    else if (
-        expression === "A'&B'"
-    ) {
-
-        circleA.style.fill =
-            "rgba(59, 130, 246, 0.08)";
-
-        circleB.style.fill =
-            "rgba(239, 68, 68, 0.08)";
-
-        background.style.fill =
-            "rgba(34, 197, 94, 0.30)";
-
-    }
-
-
-    else {
-
-        showMessage(
-            "Expression recognized with basic Venn display"
-        );
-
-    }
-
-
-    background.style.fill = "";
-
-    applyOverallSize();
-
-    showMessage(
-        `Generated: ${raw}`
-    );
-
+    diagramBox.appendChild(venn);
 }
 
 
-/* ================= GENERATE ================= */
+// --------------------------------------------------
+// HTML SAFETY
+// --------------------------------------------------
+
+function escapeHTML(text) {
+
+    return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+// --------------------------------------------------
+// GENERATE
+// --------------------------------------------------
+
+function generate() {
+
+    try {
+
+        let expression =
+            normalizeExpression(
+                expressionInput.value
+            );
+
+        validateExpression(expression);
+
+
+        const tokens =
+            tokenize(expression);
+
+
+        const parser =
+            new Parser(tokens);
+
+
+        const tree =
+            parser.parse();
+
+
+        const steps = [];
+
+        generateSteps(tree, steps);
+
+
+        const cleanSteps =
+            removeDuplicateSteps(steps);
+
+
+        displaySteps(
+            cleanSteps,
+            nodeToString(tree)
+        );
+
+
+        drawDiagram(expression);
+
+    }
+
+    catch (error) {
+
+        stepsBox.innerHTML = `
+            <div class="error">
+                ${escapeHTML(error.message)}
+            </div>
+        `;
+
+        diagramBox.innerHTML = "";
+
+    }
+}
+
+
+// --------------------------------------------------
+// BUTTON
+// --------------------------------------------------
 
 generateBtn.addEventListener(
     "click",
-    generateDiagram
+    generate
 );
 
 
+// ENTER KEY
+
 expressionInput.addEventListener(
     "keydown",
-    event => {
+    function(event) {
 
         if (event.key === "Enter") {
 
-            generateDiagram();
+            generate();
 
         }
 
@@ -1099,83 +644,24 @@ expressionInput.addEventListener(
 );
 
 
-/* ================= EXAMPLE BUTTONS ================= */
+// --------------------------------------------------
+// EXAMPLE BUTTONS
+// --------------------------------------------------
 
 document
-    .querySelectorAll(".examples button")
+    .querySelectorAll(".example-btn")
     .forEach(button => {
 
         button.addEventListener(
             "click",
-            () => {
+            function() {
 
                 expressionInput.value =
-                    button.dataset.expression;
+                    this.textContent;
 
-                generateDiagram();
+                generate();
 
             }
         );
 
     });
-
-
-/* ================= THEME ================= */
-
-themeBtn.addEventListener(
-    "click",
-    () => {
-
-        document.body.classList.toggle(
-            "dark"
-        );
-
-        if (
-            document.body.classList.contains(
-                "dark"
-            )
-        ) {
-
-            themeBtn.textContent = "☀";
-
-        } else {
-
-            themeBtn.textContent = "☾";
-
-        }
-
-    }
-);
-
-
-/* ================= KEYBOARD ================= */
-
-document.addEventListener(
-    "keydown",
-    event => {
-
-        if (event.key === "+") {
-            zoomIn();
-        }
-
-        if (event.key === "-") {
-            zoomOut();
-        }
-
-        if (event.key === "Escape") {
-            closeContextMenu();
-        }
-
-    }
-);
-
-
-/* ================= INITIALIZE ================= */
-
-updateSize();
-
-updateZoom();
-
-setMode("move");
-
-generateDiagram();
