@@ -1,286 +1,667 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0,
-                   maximum-scale=1.0, user-scalable=no">
-
-    <title>MOGIBARA Venn Diagram Maker</title>
-
-    <link rel="stylesheet" href="style.css">
-</head>
-
-<body>
-
-<header class="topbar">
-    <div>
-        <h1>MOGIBARA</h1>
-        <p>Venn Diagram Maker</p>
-    </div>
-
-    <button id="themeBtn" class="top-btn">☾</button>
-</header>
+const expressionInput = document.getElementById("expression");
+const generateBtn = document.getElementById("generateBtn");
+const stepsBox = document.getElementById("steps");
+const diagramBox = document.getElementById("diagram");
 
 
-<main class="app">
+// --------------------------------------------------
+// SYMBOL NORMALIZATION
+// --------------------------------------------------
 
-    <!-- LEFT / TOP CONTROL PANEL -->
-    <section class="control-panel">
+function normalizeExpression(input) {
 
-        <div class="input-section">
-            <label for="expression">Set Expression</label>
+    return input
+        .replace(/\s+/g, "")
+        .replace(/U/g, "∪")
+        .replace(/u/g, "∪")
+        .replace(/I/g, "∩")
+        .replace(/i/g, "∩")
+        .replace(/'/g, "'")
+        .replace(/−/g, "-")
+        .replace(/×/g, "∩");
+}
 
-            <div class="input-row">
-                <input
-                    type="text"
-                    id="expression"
-                    placeholder="Example: A-B"
-                    value="A-B"
-                    autocomplete="off"
-                >
 
-                <button id="generateBtn" class="generate-btn">
-                    Generate
-                </button>
+// --------------------------------------------------
+// VALIDATION
+// --------------------------------------------------
+
+function validateExpression(exp) {
+
+    if (!exp) {
+        throw new Error("Please enter an expression.");
+    }
+
+    const allowed = /^[A-Za-z0-9()∪∩\-']+$/;
+
+    if (!allowed.test(exp)) {
+        throw new Error(
+            "Expression contains an unsupported symbol."
+        );
+    }
+
+    let balance = 0;
+
+    for (const char of exp) {
+
+        if (char === "(") balance++;
+
+        if (char === ")") balance--;
+
+        if (balance < 0) {
+            throw new Error("Brackets are not balanced.");
+        }
+    }
+
+    if (balance !== 0) {
+        throw new Error("Brackets are not balanced.");
+    }
+}
+
+
+// --------------------------------------------------
+// TOKENIZER
+// --------------------------------------------------
+
+function tokenize(exp) {
+
+    const tokens = [];
+
+    for (let i = 0; i < exp.length; i++) {
+
+        const char = exp[i];
+
+        if (/[A-Za-z0-9]/.test(char)) {
+
+            let name = char;
+
+            while (
+                i + 1 < exp.length &&
+                /[A-Za-z0-9]/.test(exp[i + 1])
+            ) {
+                name += exp[++i];
+            }
+
+            tokens.push({
+                type: "set",
+                value: name
+            });
+
+        }
+
+        else if ("∪∩-()'".includes(char)) {
+
+            tokens.push({
+                type: char,
+                value: char
+            });
+
+        }
+
+        else {
+
+            throw new Error(
+                "Unknown character: " + char
+            );
+
+        }
+    }
+
+    return tokens;
+}
+
+
+// --------------------------------------------------
+// PARSER
+// --------------------------------------------------
+
+class Parser {
+
+    constructor(tokens) {
+
+        this.tokens = tokens;
+        this.position = 0;
+
+    }
+
+
+    current() {
+
+        return this.tokens[this.position];
+
+    }
+
+
+    eat(type) {
+
+        const token = this.current();
+
+        if (!token || token.type !== type) {
+
+            throw new Error(
+                `Expected "${type}".`
+            );
+
+        }
+
+        this.position++;
+
+        return token;
+    }
+
+
+    parse() {
+
+        const node = this.parseUnion();
+
+        if (this.position < this.tokens.length) {
+
+            throw new Error(
+                "Unexpected symbol near the end."
+            );
+
+        }
+
+        return node;
+    }
+
+
+    // UNION
+    parseUnion() {
+
+        let node = this.parseIntersection();
+
+        while (this.current()?.type === "∪") {
+
+            this.eat("∪");
+
+            node = {
+                type: "union",
+                left: node,
+                right: this.parseIntersection()
+            };
+
+        }
+
+        return node;
+    }
+
+
+    // INTERSECTION
+    parseIntersection() {
+
+        let node = this.parseDifference();
+
+        while (this.current()?.type === "∩") {
+
+            this.eat("∩");
+
+            node = {
+                type: "intersection",
+                left: node,
+                right: this.parseDifference()
+            };
+
+        }
+
+        return node;
+    }
+
+
+    // DIFFERENCE
+    parseDifference() {
+
+        let node = this.parseUnary();
+
+        while (this.current()?.type === "-") {
+
+            this.eat("-");
+
+            node = {
+                type: "difference",
+                left: node,
+                right: this.parseUnary()
+            };
+
+        }
+
+        return node;
+    }
+
+
+    // COMPLEMENT
+    parseUnary() {
+
+        let node;
+
+        if (this.current()?.type === "(") {
+
+            this.eat("(");
+
+            node = this.parseUnion();
+
+            this.eat(")");
+
+        }
+
+        else if (this.current()?.type === "set") {
+
+            node = {
+                type: "set",
+                name: this.eat("set").value
+            };
+
+        }
+
+        else {
+
+            throw new Error(
+                "Expected a set or opening bracket."
+            );
+
+        }
+
+
+        while (this.current()?.type === "'") {
+
+            this.eat("'");
+
+            node = {
+                type: "complement",
+                value: node
+            };
+
+        }
+
+        return node;
+    }
+}
+
+
+// --------------------------------------------------
+// TREE → TEXT
+// --------------------------------------------------
+
+function nodeToString(node) {
+
+    switch (node.type) {
+
+        case "set":
+            return node.name;
+
+        case "complement":
+            return nodeToString(node.value) + "'";
+
+        case "difference":
+            return (
+                "(" +
+                nodeToString(node.left) +
+                "-" +
+                nodeToString(node.right) +
+                ")"
+            );
+
+        case "intersection":
+            return (
+                "(" +
+                nodeToString(node.left) +
+                "∩" +
+                nodeToString(node.right) +
+                ")"
+            );
+
+        case "union":
+            return (
+                "(" +
+                nodeToString(node.left) +
+                "∪" +
+                nodeToString(node.right) +
+                ")"
+            );
+
+        default:
+            return "";
+    }
+}
+
+
+// --------------------------------------------------
+// STEP GENERATOR
+// --------------------------------------------------
+
+function generateSteps(node, steps = []) {
+
+    if (node.type === "set") {
+
+        return node;
+    }
+
+
+    if (node.type === "complement") {
+
+        const child = generateSteps(
+            node.value,
+            steps
+        );
+
+        steps.push({
+            expression: nodeToString(node),
+            explanation:
+                `${nodeToString(node.value)}' means the complement of ${nodeToString(node.value)} — everything outside ${nodeToString(node.value)}.`
+        });
+
+        return node;
+    }
+
+
+    if (node.type === "difference") {
+
+        generateSteps(node.left, steps);
+
+        generateSteps(node.right, steps);
+
+        steps.push({
+            expression: nodeToString(node),
+            explanation:
+                `${nodeToString(node.left)} - ${nodeToString(node.right)} means the elements that are in ${nodeToString(node.left)} but not in ${nodeToString(node.right)}.`
+        });
+
+        return node;
+    }
+
+
+    if (node.type === "intersection") {
+
+        generateSteps(node.left, steps);
+
+        generateSteps(node.right, steps);
+
+        steps.push({
+            expression: nodeToString(node),
+            explanation:
+                `${nodeToString(node.left)} ∩ ${nodeToString(node.right)} means the common region of both sets.`
+        });
+
+        return node;
+    }
+
+
+    if (node.type === "union") {
+
+        generateSteps(node.left, steps);
+
+        generateSteps(node.right, steps);
+
+        steps.push({
+            expression: nodeToString(node),
+            explanation:
+                `${nodeToString(node.left)} ∪ ${nodeToString(node.right)} means everything belonging to either set.`
+        });
+
+        return node;
+    }
+
+
+    return node;
+}
+
+
+// --------------------------------------------------
+// REMOVE DUPLICATE STEPS
+// --------------------------------------------------
+
+function removeDuplicateSteps(steps) {
+
+    const result = [];
+    const seen = new Set();
+
+    for (const step of steps) {
+
+        if (!seen.has(step.expression)) {
+
+            seen.add(step.expression);
+
+            result.push(step);
+
+        }
+
+    }
+
+    return result;
+}
+
+
+// --------------------------------------------------
+// DISPLAY STEPS
+// --------------------------------------------------
+
+function displaySteps(steps, finalExpression) {
+
+    stepsBox.innerHTML = "";
+
+    steps.forEach((step, index) => {
+
+        const div = document.createElement("div");
+
+        div.className = "step";
+
+        div.innerHTML = `
+            <div class="step-number">
+                ${index + 1}
             </div>
 
-            <div class="examples">
-                <button data-expression="A">A</button>
-                <button data-expression="A'">A'</button>
-                <button data-expression="A-B">A − B</button>
-                <button data-expression="A∩B">A ∩ B</button>
-                <button data-expression="A∪B">A ∪ B</button>
-                <button data-expression="A∩B'">A ∩ B'</button>
-            </div>
-        </div>
+            <div class="step-content">
 
-
-        <!-- TOOL BUTTONS -->
-        <div class="tools">
-
-            <button id="moveBtn" class="tool active">
-                ✋ Move
-            </button>
-
-            <button id="sizeBtn" class="tool">
-                ⛶ Size
-            </button>
-
-            <button id="zoomInBtn" class="tool">
-                ＋ Zoom
-            </button>
-
-            <button id="zoomOutBtn" class="tool">
-                − Zoom
-            </button>
-
-            <button id="resetBtn" class="tool">
-                ↺ Reset
-            </button>
-
-        </div>
-
-
-        <!-- SIZE PANEL -->
-        <div id="sizePanel" class="size-panel">
-
-            <h3>Diagram Size</h3>
-
-            <div class="size-grid">
-
-                <div>
-                    <label for="widthInput">Width</label>
-                    <input
-                        type="number"
-                        id="widthInput"
-                        value="700"
-                        min="250"
-                        max="1600"
-                    >
-                    <span>px</span>
+                <div class="step-expression">
+                    ${escapeHTML(step.expression)}
                 </div>
 
-                <div>
-                    <label for="heightInput">Height</label>
-                    <input
-                        type="number"
-                        id="heightInput"
-                        value="500"
-                        min="250"
-                        max="1200"
-                    >
-                    <span>px</span>
+                <div class="step-explanation">
+                    ${escapeHTML(step.explanation)}
                 </div>
 
             </div>
+        `;
+
+        stepsBox.appendChild(div);
+
+    });
 
 
-            <div class="slider-box">
+    const final = document.createElement("div");
 
-                <label for="sizeSlider">
-                    Overall Size
-                    <strong id="sizeValue">100%</strong>
-                </label>
+    final.className = "step";
 
-                <input
-                    type="range"
-                    id="sizeSlider"
-                    min="40"
-                    max="180"
-                    value="100"
-                >
+    final.innerHTML = `
+        <div class="step-number">✓</div>
 
+        <div class="step-content">
+
+            <div class="step-expression">
+                Final: ${escapeHTML(finalExpression)}
             </div>
 
-            <p class="touch-help">
-                📱 On mobile, use two fingers to pinch
-                and zoom the diagram.
-            </p>
+            <div class="step-explanation">
+                This is the final Venn-diagram region described by the expression.
+            </div>
 
         </div>
+    `;
 
-    </section>
-
-
-    <!-- CANVAS AREA -->
-    <section class="workspace">
-
-        <div class="workspace-top">
-
-            <span id="modeText">
-                Mode: Move
-            </span>
-
-            <span id="zoomText">
-                Zoom: 100%
-            </span>
-
-        </div>
+    stepsBox.appendChild(final);
+}
 
 
-        <div
-            id="canvasContainer"
-            class="canvas-container"
-        >
+// --------------------------------------------------
+// SIMPLE VENN DIAGRAM
+// --------------------------------------------------
 
-            <svg
-                id="vennSvg"
-                width="700"
-                height="500"
-                viewBox="0 0 700 500"
-            >
+function drawDiagram(expression) {
 
-                <defs>
-
-                    <filter
-                        id="shadow"
-                        x="-50%"
-                        y="-50%"
-                        width="200%"
-                        height="200%"
-                    >
-                        <feDropShadow
-                            dx="0"
-                            dy="5"
-                            stdDeviation="6"
-                            flood-opacity="0.18"
-                        />
-                    </filter>
-
-                </defs>
-
-                <rect
-                    id="background"
-                    x="0"
-                    y="0"
-                    width="700"
-                    height="500"
-                    rx="20"
-                    class="svg-background"
-                />
-
-                <g id="diagramGroup">
-
-                    <circle
-                        id="circleA"
-                        cx="280"
-                        cy="250"
-                        r="145"
-                        class="set-circle set-a"
-                    />
-
-                    <circle
-                        id="circleB"
-                        cx="420"
-                        cy="250"
-                        r="145"
-                        class="set-circle set-b"
-                    />
-
-                    <text
-                        id="labelA"
-                        x="190"
-                        y="120"
-                        class="set-label"
-                    >
-                        A
-                    </text>
-
-                    <text
-                        id="labelB"
-                        x="510"
-                        y="120"
-                        class="set-label"
-                    >
-                        B
-                    </text>
-
-                </g>
-
-            </svg>
-
-        </div>
-
-    </section>
-
-</main>
+    const sets = [
+        ...new Set(
+            expression.match(/[A-Za-z]/g) || []
+        )
+    ].slice(0, 3);
 
 
-<!-- CUSTOM CONTEXT MENU -->
-<div id="contextMenu" class="context-menu">
-
-    <button id="menuMove">
-        ✋ Move
-    </button>
-
-    <button id="menuSize">
-        ⛶ Change Size
-    </button>
-
-    <button id="menuZoomIn">
-        ＋ Zoom In
-    </button>
-
-    <button id="menuZoomOut">
-        − Zoom Out
-    </button>
-
-    <hr>
-
-    <button id="menuReset">
-        ↺ Reset Diagram
-    </button>
-
-</div>
+    diagramBox.innerHTML = "";
 
 
-<div id="message" class="message">
-    Diagram generated
-</div>
+    if (sets.length === 0) {
+
+        diagramBox.innerHTML =
+            "<p class='empty'>No sets detected.</p>";
+
+        return;
+    }
 
 
-<script src="script.js"></script>
+    const venn = document.createElement("div");
 
-</body>
-</html>
+    venn.className = "venn";
+
+
+    sets.forEach((set, index) => {
+
+        const circle = document.createElement("div");
+
+        circle.className =
+            "circle circle-" +
+            String.fromCharCode(97 + index);
+
+        circle.innerHTML =
+            `<span class="set-label">${set}</span>`;
+
+        venn.appendChild(circle);
+
+    });
+
+
+    diagramBox.appendChild(venn);
+}
+
+
+// --------------------------------------------------
+// HTML SAFETY
+// --------------------------------------------------
+
+function escapeHTML(text) {
+
+    return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+// --------------------------------------------------
+// GENERATE
+// --------------------------------------------------
+
+function generate() {
+
+    try {
+
+        let expression =
+            normalizeExpression(
+                expressionInput.value
+            );
+
+        validateExpression(expression);
+
+
+        const tokens =
+            tokenize(expression);
+
+
+        const parser =
+            new Parser(tokens);
+
+
+        const tree =
+            parser.parse();
+
+
+        const steps = [];
+
+        generateSteps(tree, steps);
+
+
+        const cleanSteps =
+            removeDuplicateSteps(steps);
+
+
+        displaySteps(
+            cleanSteps,
+            nodeToString(tree)
+        );
+
+
+        drawDiagram(expression);
+
+    }
+
+    catch (error) {
+
+        stepsBox.innerHTML = `
+            <div class="error">
+                ${escapeHTML(error.message)}
+            </div>
+        `;
+
+        diagramBox.innerHTML = "";
+
+    }
+}
+
+
+// --------------------------------------------------
+// BUTTON
+// --------------------------------------------------
+
+generateBtn.addEventListener(
+    "click",
+    generate
+);
+
+
+// ENTER KEY
+
+expressionInput.addEventListener(
+    "keydown",
+    function(event) {
+
+        if (event.key === "Enter") {
+
+            generate();
+
+        }
+
+    }
+);
+
+
+// --------------------------------------------------
+// EXAMPLE BUTTONS
+// --------------------------------------------------
+
+document
+    .querySelectorAll(".example-btn")
+    .forEach(button => {
+
+        button.addEventListener(
+            "click",
+            function() {
+
+                expressionInput.value =
+                    this.textContent;
+
+                generate();
+
+            }
+        );
+
+    });
